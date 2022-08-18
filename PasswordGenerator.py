@@ -21,7 +21,7 @@ def passwordGenerator (letter , number , symbol):
         passwordGenerated.append(symbolsGenerated)
 
     random.shuffle(passwordGenerated)
-    # to make my password very hard to get I need to shuffle the letters, numbers and symbols
+    # to make my password very hard to crack, I need to shuffle the letters, numbers and symbols
 
 
     My_Password = ""
