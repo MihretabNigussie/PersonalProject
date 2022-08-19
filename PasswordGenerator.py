@@ -1,3 +1,5 @@
+""" This is a program that generates a strong password including letters, numbers and symbols randomly having any number of characters as we want.
+We just have to give the number of letters, digits and symbols when we call the function."""
 import random
 
 letters = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
