@@ -1,0 +1,215 @@
+from tkinter import Y
+
+
+class Affine :
+    def inverse(self,a,b):
+        '''determines the inverse of given arguements using extended eculidean algorithm'''
+        Si,Sf=1,0 #intialize Sj-1 and Sj
+        while a%b!=0:     # loop until the remainder is zero
+                r=a%b
+                q=a//b
+                temp=Sf
+                Sf=Si-q*(Sf)   # applying the extended eculidean formula using Si as perivous S and Sf as current S
+                Si=temp
+                a,b=b,r
+        return Sf
+    def Encrypt (self,plaintext,a,b):
+        '''encrypts plaintext entered as arguement using the encryption key entered as argurment (a,b)'''
+        encrypted=''    # intalizing the variable to store encrypted text
+        for letter in plaintext:
+            if letter.isalpha():       # Checking if the element is english letter
+                if letter.islower():    # Checking if the letter is  in lower case
+                    j=ord(letter)%97     # convert the letter to the correspoding letter code beteween 0 and 26
+                    temp=(a*j+b)%26      # convert the letter code to encrypted code using the key from the user
+                    encrypted+=chr(temp+97) # convert the encypted code to the encrypted character and add it to encrypted text 
+                else:                
+                    j=ord(letter)%65
+                    temp=(a*j+b)%26
+                    encrypted+=chr(temp+65)
+            else:                  
+                encrypted+=letter   # add the element to encrypted text without converting,if it is not english letter for Eg: spaces
+        return encrypted
+    def Decrypt(self,ciphertext,a,b):
+        '''decrypts ciphertext entered as arguement using the encryption key entered as argurment (a,b)'''
+        decrypted=''                # intalizing the variable to store decrypted text
+        k=self.inverse(a,26)        # find inverse of a and 26 using the inverse function 
+        for letter in ciphertext:
+            if letter.isalpha():           # Checking if the element is english letter
+                if letter.islower():        # Checking if the letter is in lower case
+                    j=ord(letter)%97         # convert the letter to the correspoding letter code beteween 0 and 26
+                    temp=k*(j-b)%26           # convert the letter code to decrypted code using the key from the user
+                    decrypted+=chr(temp+97)    # convert the decypted code to the decrypted character and add it to decrypted text 
+                else:
+                    j=ord(letter)%65
+                    temp=k*(j-b)%26
+                    decrypted+=chr(temp+65)
+            else:
+                decrypted+=letter    # add the element to decrypted text without converting,if it is not english letter for Eg: spaces
+        return decrypted
+
+
+class Transposition:
+    def Encrypt(self,text,key):
+        keyset=list(key)                      #convert the string key into a keyset list 
+        temp=(text.replace(" ","")).upper()   #remove white spaces from the text 
+        r=len(temp)%len(keyset)               #check if the text can evenly be divided by the block length
+        if r!=0:            #add extra character 'X' if the last block is less than block length
+            for i in range(len(keyset)-r):
+                temp+="X"
+        ciphertext=""
+        i=0
+        while i<len(temp):
+          #Take a key from the key set and select the letter from the text
+          # on the position of the key to form the cipher text 
+          ciphertext+=temp[int(keyset[i%len(keyset)])+(i-i%len(keyset))-1] 
+          i+=1
+          if i%len(keyset)==0:  #Add a space between blocks
+            ciphertext+=' '     
+        return ciphertext
+    def Decrypt(self,text,key):
+        keyset=list(key)
+        decryptionKey=[None]*len(keyset)   #create a list to contain the decryption keys 
+        for keyelement in keyset:
+            f=keyset[int(keyelement)-1]       # keep the element at the position of the the keyset element to find its inverse
+            decryptionKey[int(f)-1]=int(keyelement)  #place the keyset element at a potition of the first kept element
+        return self.Encrypt(text,decryptionKey)   #use the Encrypt method with the decryption key to retrive the original text
+
+
+class RSA:
+    def FastmodularExponentioation(self,b, k, m):
+        res = 1
+        b = b % m
+        while (k > 0):
+            if ((k & 1) == 1):
+                res = (res * b) % m
+            k = k >> 1
+            b = (b * b) % m
+        return res
+    def is_prime(self,n):
+        for i in range(2,int(n**0.5)):
+            if n%i==0:
+                return False
+        return True
+    def coded(self,temptext,char):
+        '''returns two digits of letter code between 00 and 25 '''
+        if (ord(char)-32) < 10 : # check if letter code is less than 10
+                    return "0" + str(ord(char)-32)    # add "0" before the letter code
+        else:           
+                    return str(ord(char)-32)   # returns letter code beteween 0 and 94 
+    def findBlockLength(self,n):
+        num="94"           #intialize block length by 94 because the greatest character code is 94  
+        blocklength=len(num)    # intilize blocklength
+        while int(num )<n:               #loop until num is less than n
+            blocklength=len(num)
+            num+="94"     # add "94" to num because the greatest character code is 94
+        return blocklength         
+    def Encrypt(self,text,n,e):
+        '''returns the encryted text using keys(n,e)'''
+        blocklength=self.findBlockLength(n)
+        if len(text)%(blocklength/2)!=0:       # check if length of text is not divisible by block length
+            text+="X"*int((blocklength/2)-len(text)%(blocklength/2))  # add "X"'s to text for the purpose of divding text length by block length  
+        i=0
+        ciphertext=""  # intialize variable to store encrypted text
+        temptext=""    # intialize variable to store letter code of the block temporarily  
+        while i<len(text):     # loop through the text
+            if i==len(text)-1 and blocklength!=2:   # check if the index is at the end of  the text and block lengheth equals 2
+                temptext+=self.coded(temptext,text[i])# add letter code to the temptext using coded functoin
+                
+                encryptedCode=self.FastmodularExponentioation(int(temptext),e,n)     # encrypt the letter code in temptext using FastmodularExponentioation 
+                if len(str(encryptedCode))<blocklength:          # check if the length of encrypted code is less than block length
+                    ciphertext+="0"*(blocklength-len(str(encryptedCode)))  # add zero's to equlize encrypted code and block length 
+                ciphertext+=str(encryptedCode) # add the encrypted code to the encypted text
+                i+=1                                
+            elif i%(blocklength/2)==0 and i>0:         #check if index is on the starting of new block
+                
+                encrypted=str(self.FastmodularExponentioation(int(temptext),e,n))   # encrypt the letter code in temptext using FastmodularExponentioation 
+                if len(encrypted)<blocklength:        # check if the length of encrypted code is less than block length
+                    ciphertext+="0"*(blocklength-len(encrypted))       # add zero's to equlize encrypted code and block length 
+                ciphertext+=encrypted + " " # add the encrypted code to the encypted text and add space
+                temptext=""           # reset  the old temptext to empty 
+                temptext+=self.coded(temptext,text[i])    # add letter code to the empty temptext using coded functoin 
+                if blocklength==2 and i==len(text)-1:    #Check if the  the index is at the end of  the text and block lengheth equals 2
+                     ciphertext+=str(self.FastmodularExponentioation(int(temptext),e,n))   # add the last encrypted code to the cipher text because the text index is last
+                i+=1  
+            else:
+                temptext+=self.coded(temptext,text[i])  # add letter code to the temptext using coded functoin
+                i+=1
+        return ciphertext
+    def Decrypt(self,ciphertext,p,q,e):
+        if not (self.is_prime(q)and self.is_prime(p)):  #check if the entered keys are primes
+            return f"only prime numbers are eligible"
+        n=p*q  
+        product=(p-1)*(q-1)
+        affine=Affine()    # intialize Affine class object to use inverse function
+        d=affine.inverse(e,product)   # finding decription key d
+        index=0
+        ciphertext+=' '
+        tobecoded,temp='',''   #create temporary strings to store the decrypted code and the blocks of numbers respectively 
+        plaintext=''
+        blocklength=self.findBlockLength(n)
+        while index<len(ciphertext):    #continue until the ciphertext is fully decrypted
+            if ciphertext[index]==' ' or index+1==len(ciphertext):  #check if one block is fully stored or if the ciphertext is all decrypted 
+                decryptedCode=str(self.FastmodularExponentioation(int(temp),d,n)) #calculate the plaincode of the block using previosly defined method
+                if len(decryptedCode)<blocklength:  #check whether the current decrypted block's length is the same as the original block length 
+                    filler=blocklength-len(decryptedCode)  #determine the length differece 
+                    tobecoded+='0'*filler+decryptedCode    #add leading zeroes to make the length of the decryted the same as block length
+                else:
+                    tobecoded+=decryptedCode    #add the decrypted code to the encrypted code string
+                temp=''       #reset the block keeper to contain new block 
+                index+=1
+            else:
+                temp+=ciphertext[index]   #add the characters in the cipher text to the block keeper
+                index+=1
+        i=0
+        while i<len(tobecoded):
+            value=tobecoded[i:i+2]    #take the first two numbers for translation 
+            if int(value[0])==0:   
+                plaintext+=chr(int(value[1])+32) # add the translated word to the final result 
+                i+=2
+            else:
+                plaintext+=chr(int(value)+32)
+                i+=2
+        return plaintext
+
+
+def main():
+    Exit=False
+    while not(Exit):
+        text=input("Enter the message: ")
+        choose=input("Type '1' for encryption and '2' for decryption: ")
+        print("Choose the cryptosytm for encryption ")
+        cryptosystem=input("Type 'A' for Affine ,'T' for Transposiotion and 'R' for RSA:  ").upper()
+        if cryptosystem=='A':
+                keya=int(input("Enter keya: "))
+                keyb=int(input("Enter keyb: "))
+                affine=Affine()
+                if choose=='1':
+                    print(f"The encrypted text is:{affine.Encrypt(text,keya,keyb)}")
+                else:
+                    print(f"The derypted text is:{affine.Decrypt(text,keya,keyb)} ")
+        elif cryptosystem=='T':
+                key=input("Enter the transpostion key: ")
+                transposiotion=Transposition()
+                if choose=='1':
+                    print(f'The encrypted text is:"{transposiotion.Encrypt(text,key)}"')
+                else:
+                    print(f'The derypted text is:"{transposiotion.Decrypt(text,key)}"')
+        elif cryptosystem=="R":
+                rsa=RSA()
+                e=int(input("Enter the exponent: "))
+                
+                if choose=='1':
+                    n=int(input("Enter the number n: "))
+                    print(f'The encryted message is :"{rsa.Encrypt(text,n,e)}"')
+                else:
+                    p=int(input("Enter the the frist key: "))
+                    q=int(input("Enter the the second key: "))
+                    print(f'The derypted message is :"{rsa.Decrypt(text,p,q,e)}"')
+        continue_to_encrypt=input("Do you want to continue [yes/no]: ").lower()
+        if continue_to_encrypt=="yes":
+            continue
+        else:
+            Exit=True
+
+if __name__=="__main__":
+    main()
